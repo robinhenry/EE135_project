@@ -21,9 +21,10 @@ for j = 1:n
     e_j(j, 1) = 1;
     
     Y_j = e_j * e_j' * Y;
+   
 
-    phi(j, :, :) = (Y_j' + Y_j) / 2;
-    psi(j, :, :) = (Y_j' - Y_j) / (2 * 1i);
-    J(j, j, j) = 1;
+    phi(:, :, j) = (Y_j' + Y_j) / 2;
+    psi(:, :, j) = (Y_j' - Y_j) / (2 * 1i);
+    J(:, :, j) = e_j * e_j';
 end
 end
