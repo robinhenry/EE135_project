@@ -1,3 +1,6 @@
+% This script compute the SDP convex relaxation of a  
+% simple 2-bus power grid.
+
 clear; close all;
 
 % Load MATPOWER test case.
@@ -6,14 +9,6 @@ msc = loadcase('case6ww');
 % Keep only 2 buses.
 n = 2;
 new_msc = msc;
-% new_msc.bus = [msc.bus(1, :); msc.bus(4, :)];
-% new_msc.gen = msc.gen(1, :);
-% new_msc.branch = msc.branch(2, :);
-% new_msc.gencost = msc.gencost(1, :);
-% 
-% % Rename bus index.
-% new_msc.bus(2, 1) = 2;
-% new_msc.branch(1, 2) = 2;
 
 % Create simple 2-bus network.
 new_msc.bus = [1, 3, 0, 0, 0, 0, 1, 1.05, 0., 230, 1, 10, 0 ;
@@ -31,17 +26,12 @@ Y = makeYbus(new_msc);
 % Compute phi, psi and J, for all j.
 [phi, psi, J] = transform_Y(Y);
 
-% Example cost function (sum of |V|^2 of generators).
-C = zeros(n);
-for j = reshape(new_msc.gen(:, 1), 1, [])
-   C(j, j) = 1; 
-end
-
 % SDP optimization.
 cvx_begin SDP
 
     variable W(n,n) complex semidefinite;
     
+    % Cost function is p_1 + p_2 (total real power loss).
     minimize( trace(phi(:, :, 1) * W) + trace(phi(:, :, 2) * W) );
     subject to
         for j = 1:n
@@ -63,7 +53,6 @@ cvx_begin SDP
             
         end
         
-        %W >= 0;
 cvx_end
 
 rank(W)

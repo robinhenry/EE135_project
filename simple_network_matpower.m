@@ -1,3 +1,8 @@
+% This script solves the OPF problem for a simple 2-bus power grid,
+% using MATPOWER.
+
+clear; close all;
+
 % Load MATPOWER test case.
 msc = loadcase('case6ww');
 

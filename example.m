@@ -1,3 +1,6 @@
+% This example computes the SDP  convex relaxation of a
+% MATPOWER test-case network.
+
 clear; close all;
 
 %Load MATPOWER test case.
@@ -6,10 +9,9 @@ msc = loadcase('case6ww');
 %Extract admittance matrix from test case.
 n = size(msc.bus, 1);
 Y = makeYbus(msc);
-%Y = [2 - 2*1i, 1; 1, 2 - 2*1i];
 
 %Create vectors of constraints.
-[P_min, P_max, Q_min, Q_max, V_min, V_max] = get_constraints(msc);
+[P_min, P_max, Q_min, Q_max, V_min, V_max] = get_constraints(msc, true);
 
 %Compute phi, psi and J, for all j.
 [phi, psi, J] = transform_Y(Y);
@@ -25,7 +27,7 @@ cvx_begin SDP
 
     variable W(n,n) complex semidefinite;
     
-    minimize( trace(phi(:, :, 1) * W) );
+    minimize( trace(C * W) );
     subject to
         for j = 1:n
             p_j = trace(phi(:, :, j) * W);
@@ -46,7 +48,6 @@ cvx_begin SDP
             
         end
         
-        %W >= 0;
 cvx_end
 
 rank(W)

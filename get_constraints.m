@@ -1,6 +1,7 @@
 function [P_min, P_max, Q_min, Q_max, V_min, V_max] = get_constraints(msc, include_slack)
-% This function returns vectors of contraints on P, Q and |V| for a
-% given MATPOWER test case.
+% This function returns vectors of contraints on P, Q and |V|^2 for a
+% given MATPOWER test case. Lower and upper bounds are set to the same
+% value for given (constant) variables.
 %
 % Inputs:
 %   msc : MATPOWER case.
@@ -11,6 +12,9 @@ function [P_min, P_max, Q_min, Q_max, V_min, V_max] = get_constraints(msc, inclu
 %   (nx1) vectors of contraints, where elem i are the constraints at bus i.
 
 define_constants;
+
+% Set to true to fix real power output at generators (PV buses).
+fix_p_pv_bus = false;
 
 % Number of buses.
 n = size(msc.bus, 1);
@@ -26,8 +30,6 @@ Q_min = zeros(n, 1);
 % Vectors of squared voltage magnitude constraints.
 V_max = msc.bus(:, 12) .^ 2;
 V_min = msc.bus(:, 13) .^ 2;
-
-% Set lower and upper bounds equal for given (constant) variables.
     
 %%% REFERENCE BUS: V is fixed. %%%
 ref_bus = msc.bus(msc.bus(:, BUS_TYPE) == REF, BUS_I);
@@ -56,28 +58,27 @@ v_sq_magn = msc.bus(pv_bus, VM) .^ 2;
 V_max(pv_bus) = v_sq_magn;
 V_min(pv_bus) = v_sq_magn;
 
-%%% ADDED %%% 
-P_min(pv_bus) = msc.gen(pv_bus, PMIN);
-P_max(pv_bus) = msc.gen(pv_bus, PMAX);
-Q_min(pv_bus) = msc.gen(pv_bus, QMIN);
-Q_max(pv_bus) = msc.gen(pv_bus, QMAX);
+if fix_p_pv_bus == false
+    P_min(pv_bus) = msc.gen(pv_bus, PMIN);
+    P_max(pv_bus) = msc.gen(pv_bus, PMAX);
+    Q_min(pv_bus) = msc.gen(pv_bus, QMIN);
+    Q_max(pv_bus) = msc.gen(pv_bus, QMAX);
+else
+    % % Fixed real power P and constrained Q.
+    for j = reshape(pv_bus, 1, [])
 
+        idx = msc.gen(:, GEN_BUS) == j;
 
-% % Fixed real power P and constrained Q.
-% for j = reshape(pv_bus, 1, [])
-%     
-%     idx = msc.gen(:, GEN_BUS) == j;
-%     
-%     % Fixed real power P.
-%     p = msc.gen(idx, PG);
-%     P_min(j) = p;
-%     P_max(j) = p;
-%     
-%     % Constraints on reactive power Q.
-%     Q_min(j) = msc.gen(idx, QMIN);
-%     Q_max(j) = msc.gen(idx, QMAX);
-% end
+        % Fixed real power P.
+        p = msc.gen(idx, PG);
+        P_min(j) = p;
+        P_max(j) = p;
 
+        % Constraints on reactive power Q.
+        Q_min(j) = msc.gen(idx, QMIN);
+        Q_max(j) = msc.gen(idx, QMAX);
+    end
+end
 
 %%% PQ (load) BUS: P, Q fixed. %%%
 pq_bus = msc.bus(msc.bus(:, BUS_TYPE) == PQ, BUS_I);
